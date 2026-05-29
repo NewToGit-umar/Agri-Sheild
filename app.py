@@ -4,6 +4,13 @@ Crop Disease Detector (Trained CNN Model) + Farmer Chatbot (Gemini API)
 """
 
 import os
+import warnings
+
+# Suppress TensorFlow and Google warnings please correct all things to deploys eaisly 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+
 import io
 import json
 import traceback
@@ -1851,8 +1858,17 @@ def auth_status():
 
 @app.route("/")
 def index():
-    """Serve the main dashboard."""
+    """Serve the main dashboard, or app status if JSON is requested."""
+    if request.headers.get("Accept") == "application/json" or request.args.get("format") == "json" or request.args.get("json") == "1":
+        return jsonify({
+            "app": "AgriShield AI",
+            "status": "running",
+            "model_loaded": model_loaded,
+            "gemini_available": gemini_available,
+            "version": "1.0"
+        }), 200
     return render_template("index.html")
+
 
 
 def is_probably_plant_image(image_bytes):
@@ -2306,7 +2322,29 @@ def clear_chat():
 
 
 # ---------------------------------------------------------------------------
+# API Status & Health Routes
+# ---------------------------------------------------------------------------
+
+@app.route("/health")
+def health():
+    """Health check endpoint."""
+    return jsonify({"status": "healthy"}), 200
+
+@app.route("/status")
+def status():
+    """Detailed status endpoint."""
+    return jsonify({
+        "app_status": "online",
+        "plant_model_loaded": model_loaded,
+        "fruit_model_loaded": fruit_model is not None,
+        "gemini_api_available": gemini_available,
+        "port": 7860
+    }), 200
+
+
+# ---------------------------------------------------------------------------
 # Entry Point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=7860, debug=False)
+
