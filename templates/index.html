@@ -31,16 +31,17 @@
                     },
                     fontFamily: {
                         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
                     },
                 }
             }
         }
     </script>
 
-    <!-- Google Fonts — Inter -->
+    <!-- Google Fonts — Outfit & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 
     <style>
         /* ── Base ───────────────────────────────────────────── */
@@ -48,6 +49,10 @@
             font-family: 'Inter', system-ui, sans-serif;
             background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 35%, #f0f9ff 100%);
             min-height: 100vh;
+        }
+
+        h1, h2, h3, h4, .font-heading {
+            font-family: 'Outfit', sans-serif !important;
         }
 
         /* ── Spinner ───────────────────────────────────────── */
@@ -196,10 +201,24 @@
                     </div>
                 </div>
 
-                <!-- Status Badge -->
-                <div class="flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
-                    <span class="w-2 h-2 bg-emerald-500 rounded-full status-pulse"></span>
-                    System Online
+                <!-- User / Status Badge Area -->
+                <div class="flex items-center gap-3">
+                    <!-- User Greeting (Hidden initially) -->
+                    <div id="user-profile-badge" class="hidden flex items-center gap-2 text-xs font-medium text-slate-700 bg-white border border-slate-200/80 px-3.5 py-1.5 rounded-full shadow-sm">
+                        <span class="text-emerald-600">🧑‍🌾</span>
+                        <span id="user-greeting-name" class="font-bold">Farmer</span>
+                    </div>
+
+                    <!-- Sign Out Button (Hidden initially) -->
+                    <button id="nav-signout-btn" onclick="handleSignOut()" class="hidden text-xs font-semibold text-slate-400 hover:text-red-500 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition-all duration-200">
+                        Sign Out
+                    </button>
+
+                    <!-- System Status Badge -->
+                    <div class="hidden sm:flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
+                        <span class="w-2 h-2 bg-emerald-500 rounded-full status-pulse"></span>
+                        System Online
+                    </div>
                 </div>
             </div>
         </div>
@@ -248,6 +267,18 @@
                         Farm Advisor
                     </span>
                 </button>
+                <button
+                    id="tab-dashboard"
+                    onclick="switchTab('dashboard')"
+                    class="tab-btn relative px-6 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 text-slate-600 hover:text-emerald-700"
+                >
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25a2.25 2.25 0 01-2.25 2.25h-2.25A2.25 2.25 0 0113.5 8.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                        </svg>
+                        Smart Tools
+                    </span>
+                </button>
             </div>
         </div>
 
@@ -274,6 +305,26 @@
                             <option value="leaf" selected>🌿 Leaf Scanner (38 Plant Diseases)</option>
                             <option value="fruit">🍎 Fruit Scanner (Detects diseases on actual fruits)</option>
                         </select>
+                    </div>
+
+                    <!-- Scanner Mode Selector -->
+                    <div class="mb-5 flex gap-2 p-1 bg-slate-100/80 rounded-xl border border-slate-200/50">
+                        <button
+                            id="toggle-file-mode"
+                            type="button"
+                            onclick="switchScannerMode('file')"
+                            class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-emerald-800 shadow-sm border border-slate-200"
+                        >
+                            📂 File Upload
+                        </button>
+                        <button
+                            id="toggle-cam-mode"
+                            type="button"
+                            onclick="switchScannerMode('camera')"
+                            class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-emerald-700"
+                        >
+                            📷 Live Camera
+                        </button>
                     </div>
 
                     <!-- Drop Zone -->
@@ -311,6 +362,58 @@
                             class="hidden"
                             accept=".png,.jpg,.jpeg,.webp"
                         />
+                    </div>
+
+                    <!-- Camera Container -->
+                    <div id="camera-container" class="hidden rounded-xl border-2 border-emerald-200 bg-slate-900 overflow-hidden relative" style="height: 320px;">
+                        <video id="camera-video" autoplay playsinline class="w-full h-full object-cover"></video>
+                        <canvas id="camera-canvas" class="hidden"></canvas>
+                        
+                        <!-- Camera Interface Overlay Controls -->
+                        <div class="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-6 px-4 z-10">
+                            <!-- Switch Camera Button -->
+                            <button
+                                id="switch-camera-btn"
+                                type="button"
+                                onclick="switchCamera()"
+                                class="hidden p-3 bg-white/20 backdrop-blur hover:bg-white/35 border border-white/20 text-white rounded-full transition-all duration-200 active:scale-95"
+                                title="Switch Camera"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                            </button>
+                            
+                            <!-- Capture Shutter Button -->
+                            <button
+                                id="capture-btn"
+                                type="button"
+                                onclick="capturePhoto()"
+                                class="w-14 h-14 bg-white hover:bg-emerald-50 border-4 border-slate-800 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 shadow-lg relative group animate-pulse"
+                                title="Capture Photo"
+                            >
+                                <div class="w-10 h-10 bg-red-600 hover:bg-red-500 rounded-full transition-colors duration-200"></div>
+                            </button>
+                            
+                            <!-- Stop / Return Button -->
+                            <button
+                                id="stop-camera-btn"
+                                type="button"
+                                onclick="switchScannerMode('file')"
+                                class="p-3 bg-white/20 backdrop-blur hover:bg-white/35 border border-white/20 text-white rounded-full transition-all duration-200 active:scale-95"
+                                title="Close Camera"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Camera Loading Overlay -->
+                        <div id="camera-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-white gap-2 transition-opacity duration-300">
+                            <div class="spinner w-8 h-8"></div>
+                            <p class="text-xs font-semibold tracking-wider uppercase text-emerald-400">Initializing Camera...</p>
+                        </div>
                     </div>
 
                     <!-- Action Buttons -->
@@ -387,6 +490,150 @@
                     <div id="results-content" class="hidden flex-1 space-y-4 animate-slide-up"></div>
                 </div>
             </div>
+
+            <!-- Supported Crops Library (Accordion Section) -->
+            <div class="mt-8 glass-card rounded-2xl shadow-md p-6 sm:p-8 animate-slide-up" style="animation-delay: 0.3s;">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="p-2.5 bg-emerald-100/70 text-emerald-800 rounded-xl">
+                        <svg class="w-6 h-6 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-emerald-950">AI Diagnostic Library</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Explore the comprehensive list of leaves and fruits our models can accurately diagnose.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- Leaf Accordion -->
+                    <div class="border border-slate-200/60 rounded-xl overflow-hidden bg-white/50 backdrop-blur">
+                        <button
+                            type="button"
+                            onclick="toggleLibrary('leaf')"
+                            class="w-full px-5 py-3.5 flex items-center justify-between font-bold text-slate-800 hover:bg-slate-50/50 transition-all duration-200 text-left"
+                        >
+                            <span class="flex items-center gap-2 text-sm">🌿 Leaf Scanner Library <span class="text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-200/50 px-2.5 py-0.5 rounded-full font-semibold">38 Plant Diseases</span></span>
+                            <svg id="arrow-leaf" class="w-4 h-4 text-slate-400 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div id="lib-leaf" class="hidden border-t border-slate-100 bg-white/80 p-5">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                                <!-- Apple -->
+                                <div class="p-4 bg-slate-50/50 border border-slate-200/40 rounded-xl hover:shadow-md transition-all duration-200">
+                                    <h4 class="font-bold text-slate-800 text-xs flex items-center gap-1.5 mb-2">🍏 Apple Leaves</h4>
+                                    <ul class="text-[11px] text-slate-600 space-y-1.5">
+                                        <li class="flex items-center gap-1.5">🔴 Apple Scab</li>
+                                        <li class="flex items-center gap-1.5">🔴 Black Rot</li>
+                                        <li class="flex items-center gap-1.5">🔴 Cedar Apple Rust</li>
+                                        <li class="flex items-center gap-1.5">✅ Healthy Apple Leaves</li>
+                                    </ul>
+                                </div>
+                                <!-- Tomato -->
+                                <div class="p-4 bg-slate-50/50 border border-slate-200/40 rounded-xl hover:shadow-md transition-all duration-200">
+                                    <h4 class="font-bold text-slate-800 text-xs flex items-center gap-1.5 mb-2">🍅 Tomato Leaves</h4>
+                                    <ul class="text-[11px] text-slate-600 space-y-1.5">
+                                        <li class="flex items-center gap-1.5">🔴 Bacterial Spot</li>
+                                        <li class="flex items-center gap-1.5">🔴 Early Blight</li>
+                                        <li class="flex items-center gap-1.5">🔴 Late Blight</li>
+                                        <li class="flex items-center gap-1.5">🔴 Leaf Mold</li>
+                                        <li class="flex items-center gap-1.5">🔴 Septoria Leaf Spot</li>
+                                        <li class="flex items-center gap-1.5">🔴 Spider Mites</li>
+                                        <li class="flex items-center gap-1.5">🔴 Target Spot</li>
+                                        <li class="flex items-center gap-1.5">🔴 Mosaic & Yellow Leaf Curl Virus</li>
+                                        <li class="flex items-center gap-1.5">✅ Healthy Tomato Leaves</li>
+                                    </ul>
+                                </div>
+                                <!-- Potato -->
+                                <div class="p-4 bg-slate-50/50 border border-slate-200/40 rounded-xl hover:shadow-md transition-all duration-200">
+                                    <h4 class="font-bold text-slate-800 text-xs flex items-center gap-1.5 mb-2">🥔 Potato Leaves</h4>
+                                    <ul class="text-[11px] text-slate-600 space-y-1.5">
+                                        <li class="flex items-center gap-1.5">🔴 Early Blight</li>
+                                        <li class="flex items-center gap-1.5">🔴 Late Blight</li>
+                                        <li class="flex items-center gap-1.5">✅ Healthy Potato Leaves</li>
+                                    </ul>
+                                </div>
+                                <!-- Corn -->
+                                <div class="p-4 bg-slate-50/50 border border-slate-200/40 rounded-xl hover:shadow-md transition-all duration-200">
+                                    <h4 class="font-bold text-slate-800 text-xs flex items-center gap-1.5 mb-2">🌽 Corn / Maize Leaves</h4>
+                                    <ul class="text-[11px] text-slate-600 space-y-1.5">
+                                        <li class="flex items-center gap-1.5">🔴 Gray Leaf Spot (Cercospora)</li>
+                                        <li class="flex items-center gap-1.5">🔴 Common Rust</li>
+                                        <li class="flex items-center gap-1.5">🔴 Northern Leaf Blight</li>
+                                        <li class="flex items-center gap-1.5">✅ Healthy Corn Leaves</li>
+                                    </ul>
+                                </div>
+                                <!-- Grape -->
+                                <div class="p-4 bg-slate-50/50 border border-slate-200/40 rounded-xl hover:shadow-md transition-all duration-200">
+                                    <h4 class="font-bold text-slate-800 text-xs flex items-center gap-1.5 mb-2">🍇 Grape Leaves</h4>
+                                    <ul class="text-[11px] text-slate-600 space-y-1.5">
+                                        <li class="flex items-center gap-1.5">🔴 Black Rot</li>
+                                        <li class="flex items-center gap-1.5">🔴 Esca (Black Measles)</li>
+                                        <li class="flex items-center gap-1.5">🔴 Leaf Blight (Isariopsis)</li>
+                                        <li class="flex items-center gap-1.5">✅ Healthy Grape Leaves</li>
+                                    </ul>
+                                </div>
+                                <!-- Pepper -->
+                                <div class="p-4 bg-slate-50/50 border border-slate-200/40 rounded-xl hover:shadow-md transition-all duration-200">
+                                    <h4 class="font-bold text-slate-800 text-xs flex items-center gap-1.5 mb-2">🫑 Pepper Leaves</h4>
+                                    <ul class="text-[11px] text-slate-600 space-y-1.5">
+                                        <li class="flex items-center gap-1.5">🔴 Bacterial Spot</li>
+                                        <li class="flex items-center gap-1.5">✅ Healthy Pepper Leaves</li>
+                                    </ul>
+                                </div>
+                                <!-- Other Plants -->
+                                <div class="p-4 bg-slate-50/50 border border-slate-200/40 rounded-xl hover:shadow-md transition-all duration-200 sm:col-span-2 md:col-span-3">
+                                    <h4 class="font-bold text-slate-800 text-xs flex items-center gap-1.5 mb-2">🌾 Additional Plants (Leaves scanned for health verification)</h4>
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        <div class="p-2 bg-white border border-slate-100 rounded-lg text-center text-[10px] font-semibold text-slate-700">🫐 Blueberry (Healthy)</div>
+                                        <div class="p-2 bg-white border border-slate-100 rounded-lg text-center text-[10px] font-semibold text-slate-700">🍒 Cherry (Powdery Mildew)</div>
+                                        <div class="p-2 bg-white border border-slate-100 rounded-lg text-center text-[10px] font-semibold text-slate-700">🍑 Peach (Bacterial Spot)</div>
+                                        <div class="p-2 bg-white border border-slate-100 rounded-lg text-center text-[10px] font-semibold text-slate-700">🍓 Strawberry (Leaf Scorch)</div>
+                                        <div class="p-2 bg-white border border-slate-100 rounded-lg text-center text-[10px] font-semibold text-slate-700">🍂 Raspberry (Healthy)</div>
+                                        <div class="p-2 bg-white border border-slate-100 rounded-lg text-center text-[10px] font-semibold text-slate-700">🌱 Soybean (Healthy)</div>
+                                        <div class="p-2 bg-white border border-slate-100 rounded-lg text-center text-[10px] font-semibold text-slate-700">🎃 Squash (Powdery Mildew)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fruit Accordion -->
+                    <div class="border border-slate-200/60 rounded-xl overflow-hidden bg-white/50 backdrop-blur">
+                        <button
+                            type="button"
+                            onclick="toggleLibrary('fruit')"
+                            class="w-full px-5 py-3.5 flex items-center justify-between font-bold text-slate-800 hover:bg-slate-50/50 transition-all duration-200 text-left"
+                        >
+                            <span class="flex items-center gap-2 text-sm">🍎 Fruit Scanner Library <span class="text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-200/50 px-2.5 py-0.5 rounded-full font-semibold">15 Varieties (Healthy vs. Diseased)</span></span>
+                            <svg id="arrow-fruit" class="w-4 h-4 text-slate-400 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div id="lib-fruit" class="hidden border-t border-slate-100 bg-white/80 p-5">
+                            <p class="text-[11px] text-slate-500 mb-4">Our specialized fruit CNN model analyzes direct crop surface blemishes, fungal rot, and infections across 15 agricultural classes, classifying them accurately as either **Healthy** or **Diseased**:</p>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🥭 Mangoes</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🍎 Apples</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🍊 Oranges</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🍅 Tomatoes</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🥔 Potatoes</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🍇 Grapes</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🫐 Blueberries</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🍒 Cherries</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🌽 Corn Cobs</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🍑 Peaches</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🫑 Peppers</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🍓 Strawberries</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🎃 Squash</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🌱 Soybeans</div>
+                                <div class="p-2.5 bg-slate-50/70 border border-slate-200/30 rounded-xl text-center text-[11px] font-semibold text-slate-700">🍂 Raspberries</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ═══════════════════════════════════════════════════
@@ -445,6 +692,14 @@
                         </div>
                     </div>
 
+                    <!-- Suggestion Chips -->
+                    <div class="px-6 py-2 bg-white/40 border-t border-slate-100/60 overflow-x-auto whitespace-nowrap flex gap-2 chat-scroll">
+                        <button type="button" onclick="sendSuggestion('How to treat potato early blight?')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/40 rounded-full text-[10px] sm:text-xs font-semibold transition-all duration-200 active:scale-95 flex-shrink-0">🌿 How to treat potato blight?</button>
+                        <button type="button" onclick="sendSuggestion('What organic fertilizers should I use?')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/40 rounded-full text-[10px] sm:text-xs font-semibold transition-all duration-200 active:scale-95 flex-shrink-0">🪱 Organic fertilizer recommendations</button>
+                        <button type="button" onclick="sendSuggestion('Give me a 4-year crop rotation plan')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/40 rounded-full text-[10px] sm:text-xs font-semibold transition-all duration-200 active:scale-95 flex-shrink-0">🔄 4-year crop rotation plan</button>
+                        <button type="button" onclick="sendSuggestion('Best way to irrigate a tomato field?')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/40 rounded-full text-[10px] sm:text-xs font-semibold transition-all duration-200 active:scale-95 flex-shrink-0">💧 Tomato irrigation tips</button>
+                    </div>
+
                     <!-- Chat Input -->
                     <div class="px-4 py-4 border-t border-slate-100 bg-white/60">
                         <form id="chat-form" onsubmit="sendMessage(event)" class="flex gap-3">
@@ -469,6 +724,254 @@
             </div>
         </div>
 
+        <!-- ═══════════════════════════════════════════════════
+             TAB 3: SMART TOOLS & DASHBOARD
+        ═══════════════════════════════════════════════════ -->
+        <div id="panel-dashboard" class="tab-panel">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                <!-- Left Column: Climate & Dosage Calculators -->
+                <div class="lg:col-span-2 space-y-8 animate-slide-up">
+                    
+                    <!-- 1. Real-time Weather Simulator & Spray Advisory -->
+                    <div class="glass-card rounded-2xl shadow-lg p-6 sm:p-8">
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="flex items-center gap-2">
+                                <div class="p-2.5 bg-sky-100 text-sky-800 rounded-xl">
+                                    <svg class="w-5 h-5 text-sky-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-800">Weather &amp; Spray Advisory</h3>
+                                    <p class="text-[10px] text-slate-400 font-medium">Real-time localized microclimate forecast</p>
+                                </div>
+                            </div>
+                            <!-- Climate Zone Selector -->
+                            <div>
+                                <select id="climate-zone" onchange="updateSprayForecast()" class="bg-white border border-slate-200 text-slate-700 text-xs rounded-xl focus:ring-emerald-500 focus:border-emerald-500 p-2 font-semibold">
+                                    <option value="temperate" selected>🏡 Temperate Zone</option>
+                                    <option value="tropical">🌴 Tropical Damp</option>
+                                    <option value="arid">🏜️ Arid Dry</option>
+                                    <option value="continental">💨 Continental Wind</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Weather Info Cards Grid -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                            <!-- Temp -->
+                            <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center">
+                                <span class="text-xs font-semibold text-slate-400">Temperature</span>
+                                <p id="weather-temp" class="text-lg font-black text-slate-800 mt-1">21°C</p>
+                            </div>
+                            <!-- Humidity -->
+                            <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center">
+                                <span class="text-xs font-semibold text-slate-400">Humidity</span>
+                                <p id="weather-humidity" class="text-lg font-black text-slate-800 mt-1">62%</p>
+                            </div>
+                            <!-- Wind Speed -->
+                            <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center">
+                                <span class="text-xs font-semibold text-slate-400">Wind Speed</span>
+                                <p id="weather-wind" class="text-lg font-black text-slate-800 mt-1">8 km/h</p>
+                            </div>
+                            <!-- Soil Moisture -->
+                            <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center">
+                                <span class="text-xs font-semibold text-slate-400">Soil Moisture</span>
+                                <p id="weather-soil" class="text-lg font-black text-slate-800 mt-1">42%</p>
+                            </div>
+                        </div>
+
+                        <!-- Advisory Card -->
+                        <div id="weather-spray-advisory" class="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
+                            <!-- Populated dynamically by updateSprayForecast() -->
+                        </div>
+                        <div class="mt-3 flex items-center justify-between text-[9px] text-slate-400 font-semibold px-1">
+                            <span>⛅ Current Status: <strong id="weather-condition">Clear Skies</strong></span>
+                            <span>🚨 Biological Danger: <strong id="weather-risk">Low Fungal Danger</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- 2. Fungicide & Chemical Dosage Calculator -->
+                    <div class="glass-card rounded-2xl shadow-lg p-6 sm:p-8">
+                        <div class="flex items-center gap-2 mb-5">
+                            <div class="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl">
+                                <svg class="w-5 h-5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-slate-800">Fungicide &amp; Dosage Calculator</h3>
+                                <p class="text-[10px] text-slate-400 font-medium">Resolve dilution and ingredient totals per land area</p>
+                            </div>
+                        </div>
+
+                        <!-- Form Parameters -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                            <!-- Select Disease -->
+                            <div>
+                                <label for="calc-crop" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Crop &amp; Disease Profile</label>
+                                <select id="calc-crop" onchange="calculateDosage()" class="w-full bg-white border border-slate-200 text-slate-700 text-xs rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 font-semibold">
+                                    <option value="tomato_blight" selected>🍅 Tomato — Early Blight</option>
+                                    <option value="potato_blight">🥔 Potato — Late Blight</option>
+                                    <option value="corn_rust">🌽 Corn — Common Rust</option>
+                                    <option value="apple_scab">🍏 Apple — Apple Scab</option>
+                                    <option value="general_pest">🌿 General Organic Neem Spray</option>
+                                </select>
+                            </div>
+                            <!-- Field Size -->
+                            <div>
+                                <label for="calc-size" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Field Size</label>
+                                <input id="calc-size" type="number" step="0.1" value="1.0" min="0.1" oninput="calculateDosage()" class="w-full bg-white border border-slate-200 text-slate-700 text-xs rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 font-semibold" />
+                            </div>
+                            <!-- Size Unit -->
+                            <div>
+                                <label for="calc-unit" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Measurement Unit</label>
+                                <select id="calc-unit" onchange="calculateDosage()" class="w-full bg-white border border-slate-200 text-slate-700 text-xs rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 font-semibold">
+                                    <option value="acres" selected>Acres</option>
+                                    <option value="hectares">Hectares</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Calculated Output Grid -->
+                        </div>
+
+                        <!-- Advanced Delivery Specifications -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+                            <!-- Nozzle Recommendation -->
+                            <div class="p-4 bg-emerald-50/20 border border-slate-100 rounded-2xl flex flex-col justify-between animate-slide-up">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recommended Spray Nozzle</span>
+                                <span id="calc-nozzle-val" class="text-base font-black text-slate-800 mt-2">Flat Fan (XR11004)</span>
+                            </div>
+                            <!-- Operating Pressure -->
+                            <div class="p-4 bg-emerald-50/20 border border-slate-100 rounded-2xl flex flex-col justify-between animate-slide-up">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Optimal Spray Pressure</span>
+                                <span id="calc-pressure-val" class="text-base font-black text-slate-800 mt-2">2.8 bar</span>
+                            </div>
+                            <!-- Dilution Proportion -->
+                            <div class="p-4 bg-emerald-50/20 border border-slate-100 rounded-2xl flex flex-col justify-between animate-slide-up">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Calculated Dilution Ratio</span>
+                                <span id="calc-dilution-val" class="text-base font-black text-slate-800 mt-2">1:400 (Liquid)</span>
+                            </div>
+                        </div>
+
+                        <!-- Technical Recommendation -->
+                        <div class="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl text-[11px] leading-relaxed">
+                            <p class="text-slate-700 font-semibold mb-1">📋 Active Remedy: <strong id="calc-name-val" class="text-emerald-800">Chlorothalonil 720SC Fungicide</strong></p>
+                            <p class="text-slate-500 font-medium">⚠️ Safety Protocol: <span id="calc-protocol">Wear standard N95 mask, rubber gloves, and protective suit. Avoid spraying within 50 feet of open waterways.</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Crop Rotation & Scan Journal Timeline -->
+                <div class="space-y-8 animate-slide-up" style="animation-delay: 0.1s;">
+                    
+                    <!-- 3. Interactive Crop Rotation Planner -->
+                    <div class="glass-card rounded-2xl shadow-lg p-6 sm:p-8">
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="flex items-center gap-2">
+                                <div class="p-2.5 bg-amber-100 text-amber-800 rounded-xl">
+                                    <svg class="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-800">Rotation Advisor</h3>
+                                    <p class="text-[10px] text-slate-400 font-medium">Biological pathogen disruption planner</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-5">
+                            <label for="rotation-start" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Active Crop Planted</label>
+                            <select id="rotation-start" onchange="updateCropRotation()" class="w-full bg-white border border-slate-200 text-slate-700 text-xs rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 font-semibold">
+                                <option value="tomato" selected>🍅 Tomato / Nightshades</option>
+                                <option value="corn">🌽 Corn / Grain Grasses</option>
+                                <option value="potato">🥔 Potato / Tuber Roots</option>
+                                <option value="legume">🫘 Legumes / Bush Beans</option>
+                            </select>
+                        </div>
+
+                        <!-- Rotation Timeline Output -->
+                        <div id="rotation-timeline" class="py-2">
+                            <!-- Populated dynamically by updateCropRotation() -->
+                        </div>
+                    </div>
+
+                    <!-- 4. Scan History Journal & Farm Stats -->
+                    <div class="glass-card rounded-2xl shadow-lg p-6 sm:p-8 flex flex-col" style="max-height: 520px;">
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="flex items-center gap-2">
+                                <div class="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl">
+                                    <svg class="w-5 h-5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-800">Scan Journal Log</h3>
+                                    <p class="text-[10px] text-slate-400 font-medium">Historical audit of crop diagnoses</p>
+                                </div>
+                            </div>
+                            <!-- Clear All -->
+                            <button type="button" onclick="clearAllScans()" class="text-[10px] font-bold text-red-400 hover:text-red-500 transition-colors">Wipe Log</button>
+                        </div>
+
+                        </div>
+
+                        <!-- Interactive SVG Donut Chart -->
+                        <div id="dashboard-chart-container" class="flex items-center justify-around bg-slate-50/50 border border-slate-200/50 rounded-2xl p-4 mb-4 gap-4 animate-slide-up">
+                            <!-- SVG Donut Chart -->
+                            <div class="relative w-24 h-24 flex items-center justify-center">
+                                <svg width="96" height="96" viewBox="0 0 96 96" class="-rotate-90">
+                                    <!-- Base Circle -->
+                                    <circle cx="48" cy="48" r="38" fill="transparent" stroke="#f1f5f9" stroke-width="10" />
+                                    <!-- Dynamic Slices (injected via renderScanHistoryChart) -->
+                                    <g id="donut-slices-group"></g>
+                                </svg>
+                                <!-- Center Text -->
+                                <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                    <span id="donut-center-rate" class="text-sm font-black text-slate-800">100%</span>
+                                    <span class="text-[7px] font-bold text-slate-400 uppercase tracking-wider">Healthy</span>
+                                </div>
+                            </div>
+
+                            <!-- Legend List -->
+                            <div class="flex-1 space-y-1.5 text-[9px] font-bold text-slate-500">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 block border border-emerald-600/10 animate-pulse"></span>
+                                    <span>Healthy: <span id="legend-healthy-count" class="text-slate-700">0</span></span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-red-500 block border border-red-600/10"></span>
+                                    <span>Diseased: <span id="legend-diseased-count" class="text-slate-700">0</span></span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-orange-500 block border border-orange-600/10"></span>
+                                    <span>Pests: <span id="legend-pests-count" class="text-slate-700">0</span></span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 block border border-amber-600/10"></span>
+                                    <span>Deficiencies: <span id="legend-nutrient-count" class="text-slate-700">0</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-2 bg-slate-50 border border-slate-200/50 rounded-xl text-center text-[10px] font-semibold text-slate-500 mb-4 truncate">
+                            ⚠️ Most Prevalent Disease: <strong id="analytics-prevalent-disease" class="text-red-600">None</strong>
+                        </div>
+
+                        <!-- Journal Log Cards List (Scrollable) -->
+                        <div id="journal-list" class="flex-1 overflow-y-auto space-y-3 chat-scroll pr-1" style="max-height: 230px;">
+                            <!-- Populated dynamically by renderScanJournal() -->
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
     </main>
 
     <!-- ═══════════════════════════════════════════════════════
@@ -480,7 +983,131 @@
         </p>
     </footer>
 
+    <!-- ═══════════════════════════════════════════════════════
+         LOGIN / SIGNUP SCREEN OVERLAY
+    ═══════════════════════════════════════════════════════ -->
+    <div id="auth-overlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md transition-opacity duration-500 hidden">
+            <!-- Credentials Input Container -->
+            <div id="auth-credentials-container">
+                <!-- Header -->
+                <div class="text-center mb-6">
+                    <div class="logo-glow inline-block mb-3">
+                        <svg class="w-12 h-12 text-emerald-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 007.92 12.446A9 9 0 1112 2.992z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l-1.5 1.5M14 6v2M19 10h-2"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12c0 0 1.5 1 3 1s3-1 3-1"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v4"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 20h4"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-black text-emerald-950 tracking-tight">AgriShield AI</h2>
+                    <p class="text-xs text-slate-500 mt-1">Sign in to access advanced crop intelligence</p>
+                </div>
+
+                <!-- Tab Switcher -->
+                <div class="flex gap-2 p-1 bg-slate-100/80 rounded-xl border border-slate-200/50 mb-6">
+                    <button id="auth-tab-login" type="button" onclick="switchAuthTab('login')" class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-emerald-800 shadow-sm border border-slate-200">
+                        Sign In
+                    </button>
+                    <button id="auth-tab-signup" type="button" onclick="switchAuthTab('signup')" class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-emerald-700">
+                        Register
+                    </button>
+                </div>
+
+                <!-- Form -->
+                <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                    <!-- Username (always visible) -->
+                    <div>
+                        <label id="username-label" for="auth-username" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Username or Email</label>
+                        <input type="text" id="auth-username" required class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" placeholder="farmer_joe" />
+                    </div>
+
+                    <!-- Email (visible only during signup) -->
+                    <div id="email-group" class="hidden">
+                        <label for="auth-email" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Email Address</label>
+                        <input type="email" id="auth-email" class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" placeholder="joe@farm.com" />
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label for="auth-password" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Password</label>
+                        <div class="relative">
+                            <input type="password" id="auth-password" required class="w-full px-4 py-2.5 pr-10 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" placeholder="••••••••" />
+                            <button type="button" id="toggle-password-btn" onclick="togglePasswordVisibility('auth-password', 'eye-icon')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-emerald-700 transition-colors" title="Toggle password visibility">
+                                <!-- Eye icon -->
+                                <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Error Box -->
+                    <div id="auth-error" class="hidden text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3"></div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="auth-btn" class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
+                        <span id="auth-btn-text">Sign In</span>
+                        <div id="auth-spinner" class="spinner hidden"></div>
+                    </button>
+                </form>
+            </div>
+
+            <!-- 2-Factor Authentication (2FA) Container -->
+            <div id="auth-2fa-container" class="hidden">
+                <!-- Header -->
+                <div class="text-center mb-6">
+                    <div class="logo-glow inline-block mb-3">
+                        <svg class="w-12 h-12 text-emerald-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-black text-emerald-950 tracking-tight">Two-Factor Security</h2>
+                    <p class="text-xs text-slate-500 mt-1">We sent a 6-digit code to <strong id="auth-2fa-email" class="text-emerald-800 font-bold">...</strong></p>
+                </div>
+
+                <form id="auth-2fa-form" onsubmit="handle2FAVerification(event)" class="space-y-6">
+                    <!-- 6 Digit Input Blocks -->
+                    <div class="flex justify-between gap-2 max-w-xs mx-auto" id="otp-inputs-container">
+                        <input type="text" maxlength="1" class="otp-digit w-12 h-12 text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" required />
+                        <input type="text" maxlength="1" class="otp-digit w-12 h-12 text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" required />
+                        <input type="text" maxlength="1" class="otp-digit w-12 h-12 text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" required />
+                        <input type="text" maxlength="1" class="otp-digit w-12 h-12 text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" required />
+                        <input type="text" maxlength="1" class="otp-digit w-12 h-12 text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" required />
+                        <input type="text" maxlength="1" class="otp-digit w-12 h-12 text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" required />
+                    </div>
+
+                    <!-- Countdown Timer & Actions -->
+                    <div class="text-center space-y-2">
+                        <p class="text-[11px] text-slate-500 font-medium">
+                            Code expires in: <span id="auth-2fa-timer" class="font-bold text-emerald-700">10:00</span>
+                        </p>
+                        <p class="text-[11px]">
+                            <span class="text-slate-400">Didn't receive code? </span>
+                            <button type="button" id="auth-2fa-resend-btn" onclick="resend2FACode()" class="text-emerald-700 hover:text-emerald-800 font-bold transition-colors">Resend Code</button>
+                        </p>
+                    </div>
+
+                    <!-- Error Alert -->
+                    <div id="auth-2fa-error" class="hidden text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3"></div>
+
+                    <!-- Buttons: Verify and Back to Login -->
+                    <div class="space-y-2.5">
+                        <button type="submit" id="auth-2fa-verify-btn" class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
+                            <span>Verify Code</span>
+                            <div id="auth-2fa-spinner" class="spinner hidden"></div>
+                        </button>
+                        <button type="button" onclick="cancel2FA()" class="w-full text-[11px] text-slate-500 hover:text-slate-700 font-bold transition-colors py-1">
+                            Back to Sign In
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=1.1"></script>
 </body>
 </html>

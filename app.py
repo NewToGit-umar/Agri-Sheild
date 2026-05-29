@@ -7,6 +7,26 @@ import os
 import io
 import json
 import traceback
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+load_dotenv()
+
+# Configure Google Gemini API client
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+gemini_available = False
+
+if GEMINI_API_KEY:
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        # Test model initialization
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        gemini_available = True
+        print("[INFO] Google Gemini API successfully configured.")
+    except Exception as e:
+        print(f"[WARNING] Failed to configure Google Gemini API: {e}")
+else:
+    print("[WARNING] GEMINI_API_KEY environment variable is missing in .env.")
 
 import numpy as np
 from flask import (
@@ -1509,6 +1529,323 @@ def preprocess_image(image_bytes, target_size=IMG_SIZE):
 
 
 # ---------------------------------------------------------------------------
+# Database & Authentication Setup
+# ---------------------------------------------------------------------------
+import sqlite3
+from werkzeug.security import generate_password_hash, check_password_hash
+
+DB_PATH = os.path.join(os.path.dirname(__file__), "users.db")
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Initialize DB on startup
+try:
+    init_db()
+    print("[INFO] SQLite users database successfully initialized.")
+except Exception as e:
+    print(f"[ERROR] Failed to initialize SQLite users database: {e}")
+
+import random
+import time
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+
+def send_otp_email(to_email, otp_code):
+    """Sends a 6-digit OTP to the user's email. Fallback to console print if SMTP is not configured."""
+    subject = "AgriShield AI — Two-Factor Authentication Code"
+    body = f"""
+    Hello!
+    
+    Your AgriShield AI 2-Factor Authentication Code is:
+    
+    ===>   {otp_code}   <===
+    
+    This code is valid for 10 minutes. If you did not request this, please secure your account.
+    
+    Sustainable Agriculture,
+    AgriShield AI Team
+    """
+    
+    # Check if SMTP is configured
+    if SMTP_SERVER and SMTP_USER and SMTP_PASSWORD:
+        try:
+            msg = MIMEMultipart()
+            msg["From"] = SMTP_USER
+            msg["To"] = to_email
+            msg["Subject"] = subject
+            msg.attach(MIMEText(body, "plain"))
+            
+            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(SMTP_USER, to_email, msg.as_string())
+            server.quit()
+            print(f"[INFO] 2FA OTP email successfully sent to {to_email}")
+            return True
+        except Exception as e:
+            print(f"[ERROR] Failed to send 2FA OTP email: {e}")
+            
+    # Dev mode fallback: print to console
+    print("\n" + "="*60, flush=True)
+    print(f"[DEV MODE OTP FALLBACK]", flush=True)
+    print(f"Recipient: {to_email}", flush=True)
+    print(f"Verification Code: {otp_code}", flush=True)
+    print("="*60 + "\n", flush=True)
+    return False
+
+def obfuscate_email(email):
+    try:
+        parts = email.split("@")
+        name = parts[0]
+        domain = parts[1]
+        if len(name) > 3:
+            name = name[:3] + "***"
+        else:
+            name = name + "***"
+        return f"{name}@{domain}"
+    except Exception:
+        return email
+
+@app.route("/api/signup", methods=["POST"])
+def auth_signup():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "Missing signup data."}), 400
+            
+        username = data.get("username", "").strip()
+        email = data.get("email", "").strip()
+        password = data.get("password", "")
+
+        if not username or not email or not password:
+            return jsonify({"success": False, "error": "Username, email, and password are required."}), 400
+
+        if len(password) < 6:
+            return jsonify({"success": False, "error": "Password must be at least 6 characters long."}), 400
+
+        # Check database first to prevent duplicate emails/usernames
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", (username, email))
+        existing_user = cursor.fetchone()
+        conn.close()
+
+        if existing_user:
+            return jsonify({"success": False, "error": "Username or email already registered."}), 400
+
+        # Create pending session credentials and generate OTP
+        otp_code = str(random.randint(100000, 999999))
+        session["pending_auth"] = {
+            "type": "signup",
+            "username": username,
+            "email": email,
+            "password_hash": generate_password_hash(password),
+            "otp": otp_code,
+            "expires_at": time.time() + 600  # 10 minutes
+        }
+        session.modified = True
+
+        # Dispatch code
+        send_otp_email(email, otp_code)
+
+        return jsonify({
+            "success": True,
+            "two_factor_required": True,
+            "email": obfuscate_email(email),
+            "message": "A 2FA verification code has been sent to your email!"
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": "An internal registration error occurred."}), 500
+
+@app.route("/api/login", methods=["POST"])
+def auth_login():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "Missing login credentials."}), 400
+            
+        username_or_email = data.get("username", "").strip()
+        password = data.get("password", "")
+
+        if not username_or_email or not password:
+            return jsonify({"success": False, "error": "Username/email and password are required."}), 400
+
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, username, email, password_hash FROM users WHERE username = ? OR email = ?",
+            (username_or_email, username_or_email)
+        )
+        user = cursor.fetchone()
+        conn.close()
+
+        if not user or not check_password_hash(user[3], password):
+            return jsonify({"success": False, "error": "Invalid username/email or password."}), 401
+
+        # Create pending session credentials and generate OTP
+        otp_code = str(random.randint(100000, 999999))
+        session["pending_auth"] = {
+            "type": "login",
+            "user_id": user[0],
+            "username": user[1],
+            "email": user[2],
+            "otp": otp_code,
+            "expires_at": time.time() + 600  # 10 minutes
+        }
+        session.modified = True
+
+        # Dispatch code
+        send_otp_email(user[2], otp_code)
+
+        return jsonify({
+            "success": True,
+            "two_factor_required": True,
+            "email": obfuscate_email(user[2]),
+            "message": "A 2FA verification code has been sent to your email!"
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": "An internal login error occurred."}), 500
+
+@app.route("/api/auth/verify_2fa", methods=["POST"])
+def auth_verify_2fa():
+    try:
+        data = request.get_json()
+        if not data or not data.get("otp", "").strip():
+            return jsonify({"success": False, "error": "Verification code is required."}), 400
+            
+        submitted_otp = data.get("otp", "").strip()
+        pending = session.get("pending_auth")
+        
+        if not pending:
+            return jsonify({"success": False, "error": "No pending session. Please log in again."}), 400
+            
+        # Check expiry
+        if time.time() > pending.get("expires_at", 0):
+            session.pop("pending_auth", None)
+            return jsonify({"success": False, "error": "Verification code has expired. Please try again."}), 400
+            
+        # Check OTP
+        if submitted_otp != pending.get("otp"):
+            return jsonify({"success": False, "error": "Invalid verification code. Please try again."}), 400
+            
+        # Complete authentication and clear pending data
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        if pending["type"] == "signup":
+            try:
+                # Perform registration write
+                cursor.execute(
+                    "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+                    (pending["username"], pending["email"], pending["password_hash"])
+                )
+                conn.commit()
+                
+                # Fetch inserted user details
+                cursor.execute("SELECT id, username, email FROM users WHERE username = ?", (pending["username"],))
+                user = cursor.fetchone()
+                
+                # Setup active session
+                session["user_id"] = user[0]
+                session["username"] = user[1]
+                session["email"] = user[2]
+                
+            except sqlite3.IntegrityError:
+                return jsonify({"success": False, "error": "Username or email already registered."}), 400
+            finally:
+                conn.close()
+        
+        elif pending["type"] == "login":
+            # Setup active session
+            session["user_id"] = pending["user_id"]
+            session["username"] = pending["username"]
+            session["email"] = pending["email"]
+            conn.close()
+            
+        # Clear pending auth
+        session.pop("pending_auth", None)
+        
+        return jsonify({
+            "success": True,
+            "message": "Two-factor authentication successful!",
+            "user": {
+                "username": session["username"],
+                "email": session["email"]
+            }
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": "An internal verification error occurred."}), 500
+
+@app.route("/api/auth/resend_2fa", methods=["POST"])
+def auth_resend_2fa():
+    try:
+        pending = session.get("pending_auth")
+        if not pending:
+            return jsonify({"success": False, "error": "No pending session. Please restart registration/login."}), 400
+            
+        # Generate new OTP
+        new_otp = str(random.randint(100000, 999999))
+        pending["otp"] = new_otp
+        pending["expires_at"] = time.time() + 600
+        session["pending_auth"] = pending
+        session.modified = True
+        
+        # Dispatch
+        send_otp_email(pending["email"], new_otp)
+        
+        return jsonify({
+            "success": True,
+            "message": "A new verification code has been dispatched!",
+            "email": obfuscate_email(pending["email"])
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": "Failed to resend code."}), 500
+
+@app.route("/api/logout", methods=["POST", "GET"])
+def auth_logout():
+    session.clear()
+    return jsonify({"success": True, "message": "Logged out successfully!"})
+
+@app.route("/api/auth/status", methods=["GET"])
+def auth_status():
+    if "user_id" in session:
+        return jsonify({
+            "authenticated": True,
+            "user": {
+                "username": session["username"],
+                "email": session["email"]
+            }
+        })
+    return jsonify({"authenticated": False})
+
+
+# ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
@@ -1518,6 +1855,45 @@ def index():
     return render_template("index.html")
 
 
+def is_probably_plant_image(image_bytes):
+    """
+    Analyzes color distributions of the image at 32x32 resolution.
+    Returns True if the image has a reasonable proportion of organic plant-like colors
+    (greens, yellow-decay browns, ripe organic reds).
+    """
+    try:
+        from PIL import Image
+        import io
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        img = img.resize((32, 32))
+        pixels = list(img.getdata())
+        
+        plant_pixel_count = 0
+        total_pixels = 32 * 32
+        
+        for r, g, b in pixels:
+            # 1. Green tones: Green is dominant and significantly larger than blue/red
+            is_green = (g > r * 1.1) and (g > b * 1.1) and (g > 30)
+            
+            # 2. Yellow/Brown tones (decay/healthy fruit/rust): Red and Green are high, Blue is low
+            is_yellow_brown = (r > 60) and (g > 50) and (g > b * 1.2) and (r > b * 1.2) and (abs(r - g) < 60)
+            
+            # 3. Organic Red tones (ripe tomato/apple): Red is highly dominant
+            is_organic_red = (r > g * 1.3) and (r > b * 1.3) and (r > 60)
+            
+            if is_green or is_yellow_brown or is_organic_red:
+                plant_pixel_count += 1
+                
+        plant_ratio = plant_pixel_count / total_pixels
+        print(f"[INFO] Local organic color validation ratio: {plant_ratio:.2f}", flush=True)
+        
+        # If less than 12% of the image contains plant-like organic colors, it is likely not a plant!
+        return plant_ratio >= 0.12
+    except Exception as e:
+        print(f"[WARNING] Local color validation failed: {e}", flush=True)
+        return True  # Fallback to True if analysis fails
+
+
 @app.route("/api/analyze", methods=["POST"])
 def analyze_crop():
     """
@@ -1525,6 +1901,13 @@ def analyze_crop():
     and returns structured JSON diagnosis.
     """
     try:
+        # --- Check authentication ---
+        if "user_id" not in session:
+            return jsonify({
+                "success": False,
+                "error": "Authentication required. Please log in first."
+            }), 401
+
         # --- Check if model is loaded ---
         if not model_loaded or trained_model is None:
             return jsonify({
@@ -1567,11 +1950,49 @@ def analyze_crop():
                 "error": "The uploaded file appears to be corrupted or is not a valid image."
             }), 400
 
+        # --- Local organic color check (instant, offline safeguard) ---
+        if not is_probably_plant_image(image_bytes):
+            return jsonify({
+                "success": False,
+                "error": "The uploaded image does not appear to contain a valid crop leaf or fruit. Please upload a clear photo of your plant for diagnosis."
+            }), 400
+
+        # --- Validate if image contains a crop leaf, fruit or agricultural plant using Gemini ---
+        if gemini_available:
+            try:
+                # Open image for Gemini
+                validation_image = Image.open(io.BytesIO(image_bytes))
+                validation_model = genai.GenerativeModel("gemini-1.5-flash")
+                prompt = (
+                    "Analyze this image. Is it a plant, crop leaf, fruit, tree, or agricultural crop? "
+                    "Answer ONLY 'YES' if it is a crop, leaf, plant, or fruit/vegetable. "
+                    "Answer 'NO' if it is a human being, face, animal, random indoor object (like a keyboard, mug, room), "
+                    "or anything unrelated to agriculture and plant disease."
+                )
+                response = validation_model.generate_content([validation_image, prompt])
+                answer = response.text.strip().upper()
+                print(f"[INFO] Gemini Vision crop validation result: {answer}", flush=True)
+                
+                if "NO" in answer:
+                    return jsonify({
+                        "success": False,
+                        "error": "The uploaded image does not appear to contain a valid crop leaf or fruit. Please upload a clear photo of your plant for diagnosis."
+                    }), 400
+            except Exception as e:
+                print(f"[WARNING] Gemini Vision crop validation failed: {e}", flush=True)
+
         # --- Preprocess and predict ---
         img_array = preprocess_image(image_bytes)
         predictions = trained_model.predict(img_array, verbose=0)
         predicted_idx = int(np.argmax(predictions[0]))
         confidence = float(predictions[0][predicted_idx]) * 100
+
+        # --- Confidence Threshold Check ---
+        if confidence < 50.0:
+            return jsonify({
+                "success": False,
+                "error": "The AI model is not confident in this image. Please ensure you upload a clear, well-lit photo of a crop leaf or fruit."
+            }), 400
 
         # Get the class name
         class_name = class_labels.get(str(predicted_idx), "Unknown")
@@ -1607,6 +2028,13 @@ def analyze_fruit():
     Accepts a fruit image upload and runs it through the secondary Fruit CNN model.
     """
     try:
+        # --- Check authentication ---
+        if "user_id" not in session:
+            return jsonify({
+                "success": False,
+                "error": "Authentication required. Please log in first."
+            }), 401
+
         if not model_loaded or fruit_model is None:
             return jsonify({
                 "success": False,
@@ -1627,11 +2055,49 @@ def analyze_fruit():
         except Exception:
             return jsonify({"success": False, "error": "Invalid image file."}), 400
 
+        # --- Local organic color check (instant, offline safeguard) ---
+        if not is_probably_plant_image(image_bytes):
+            return jsonify({
+                "success": False,
+                "error": "The uploaded image does not appear to contain a valid crop leaf or fruit. Please upload a clear photo of your plant for diagnosis."
+            }), 400
+
+        # --- Validate if image contains a crop leaf, fruit or agricultural plant using Gemini ---
+        if gemini_available:
+            try:
+                # Open image for Gemini
+                validation_image = Image.open(io.BytesIO(image_bytes))
+                validation_model = genai.GenerativeModel("gemini-1.5-flash")
+                prompt = (
+                    "Analyze this image. Is it a plant, crop leaf, fruit, tree, or agricultural crop? "
+                    "Answer ONLY 'YES' if it is a crop, leaf, plant, or fruit/vegetable. "
+                    "Answer 'NO' if it is a human being, face, animal, random indoor object (like a keyboard, mug, room), "
+                    "or anything unrelated to agriculture and plant disease."
+                )
+                response = validation_model.generate_content([validation_image, prompt])
+                answer = response.text.strip().upper()
+                print(f"[INFO] Gemini Vision crop validation result: {answer}", flush=True)
+                
+                if "NO" in answer:
+                    return jsonify({
+                        "success": False,
+                        "error": "The uploaded image does not appear to contain a valid crop leaf or fruit. Please upload a clear photo of your plant for diagnosis."
+                    }), 400
+            except Exception as e:
+                print(f"[WARNING] Gemini Vision crop validation failed: {e}", flush=True)
+
         # Preprocess and predict
         img_array = preprocess_image(image_bytes, target_size=FRUIT_IMG_SIZE)
         predictions = fruit_model.predict(img_array, verbose=0)
         predicted_idx = int(np.argmax(predictions[0]))
         confidence = float(predictions[0][predicted_idx]) * 100
+
+        # --- Confidence Threshold Check ---
+        if confidence < 50.0:
+            return jsonify({
+                "success": False,
+                "error": "The AI model is not confident in this image. Please ensure you upload a clear, well-lit photo of a crop leaf or fruit."
+            }), 400
 
         class_name = fruit_class_labels.get(str(predicted_idx), "Unknown")
         disease_info = get_disease_info(class_name)
@@ -1656,10 +2122,18 @@ def analyze_fruit():
 @app.route("/api/chat", methods=["POST"])
 def chat():
     """
-    Accepts a user message and returns an AI response using the
-    offline rule-based chatbot (no API key needed).
+    Accepts a user message and returns an AI response.
+    Attempts to use Google Gemini API if available, otherwise falls back to
+    the offline rule-based dictionary chatbot.
     """
     try:
+        # --- Check authentication ---
+        if "user_id" not in session:
+            return jsonify({
+                "success": False,
+                "error": "Authentication required. Please log in first."
+            }), 401
+
         data = request.get_json(silent=True)
         if not data or not data.get("message", "").strip():
             return jsonify({
@@ -1669,8 +2143,79 @@ def chat():
 
         user_message = data["message"].strip()
 
-        # Generate response using offline chatbot
+        # If Gemini is available, use it!
+        if gemini_available:
+            try:
+                # Load chat history from session or initialize it
+                history = session.get("chat_history", [])
+                
+                # Setup system instructions for a professional agronomist
+                system_prompt = (
+                    "You are AgriShield AI Advisor, a senior professional agronomist and crop protection specialist.\n"
+                    "Your job is to provide highly accurate, structured, and expert agricultural advice on:\n"
+                    "- Crop and plant diseases (symptoms, treatments, preventive measures)\n"
+                    "- Pest and insect management (both chemical and organic/IPM solutions)\n"
+                    "- Soil health, preparation, pH, and fertilization (NPK, compost)\n"
+                    "- Efficient irrigation practices (drip, water needs)\n"
+                    "- Crop rotation, organic farming, and sustainable farming methods\n\n"
+                    "Formatting Rules:\n"
+                    "- Use Markdown (bold, lists, headers) to make responses readable.\n"
+                    "- Keep answers concise, actionable, and structured.\n"
+                    "- If a user asks general, non-agricultural questions, answer them professionally and politely. "
+                    "Where possible, make natural analogies or tie-backs to nature, plants, farming, or technology."
+                )
+                
+                # Format session history into the structure google-generativeai expects
+                gemini_history = []
+                for msg in history:
+                    role = "model" if msg["role"] == "model" else "user"
+                    gemini_history.append({
+                        "role": role,
+                        "parts": [msg["parts"][0]]
+                    })
+
+                # Initialize Gemini Model
+                gemini_model = genai.GenerativeModel(
+                    model_name="gemini-1.5-flash",
+                    system_instruction=system_prompt
+                )
+                
+                # Start chat with history
+                chat_session = gemini_model.start_chat(history=gemini_history)
+                response = chat_session.send_message(user_message)
+                assistant_reply = response.text
+
+                # Append message to session history
+                history.append({"role": "user", "parts": [user_message]})
+                history.append({"role": "model", "parts": [assistant_reply]})
+                
+                # Keep history size manageable (last 20 messages)
+                if len(history) > 20:
+                    history = history[-20:]
+                    
+                session["chat_history"] = history
+                session.modified = True
+
+                return jsonify({
+                    "success": True,
+                    "reply": assistant_reply
+                })
+
+            except Exception as e:
+                print(f"[WARNING] Gemini API error, falling back to offline mode: {e}")
+                # Fall back to offline chatbot if API fails (network issue, rate limit, etc.)
+
+        # --- FALLBACK: Offline Dictionary Chatbot ---
         assistant_reply = get_chatbot_response(user_message)
+
+        # Still save fallback history in session so it remains cohesive
+        history = session.get("chat_history", [])
+        history.append({"role": "user", "parts": [user_message]})
+        history.append({"role": "model", "parts": [assistant_reply]})
+        if len(history) > 20:
+            history = history[-20:]
+        session["chat_history"] = history
+        session.modified = True
 
         return jsonify({
             "success": True,
@@ -1688,6 +2233,12 @@ def chat():
 @app.route("/api/chat/clear", methods=["POST"])
 def clear_chat():
     """Wipe conversation history from session."""
+    if "user_id" not in session:
+        return jsonify({
+            "success": False,
+            "error": "Authentication required. Please log in first."
+        }), 401
+
     session.pop("chat_history", None)
     session.modified = True
     return jsonify({"success": True, "message": "Conversation history cleared."})
