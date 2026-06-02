@@ -141,9 +141,6 @@ function switchTab(tab) {
 // DRAG & DROP + FILE INPUT
 // ═══════════════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-    // Check authentication on startup
-    checkAuthStatus();
-    
     // Initialize 2FA digits navigation
     setupOTPInputNavigation();
 

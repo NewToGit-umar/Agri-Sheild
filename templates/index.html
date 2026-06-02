@@ -203,22 +203,11 @@
 
                 <!-- User / Status Badge Area -->
                 <div class="flex items-center gap-3">
-                    <!-- User Greeting (Hidden initially) -->
-                    <div id="user-profile-badge" class="hidden flex items-center gap-2 text-xs font-medium text-slate-700 bg-white border border-slate-200/80 px-3.5 py-1.5 rounded-full shadow-sm">
-                        <span class="text-emerald-600">🧑‍🌾</span>
-                        <span id="user-greeting-name" class="font-bold">Farmer</span>
-                    </div>
-
-                    <!-- Sign Out Button (Hidden initially) -->
-                    <button id="nav-signout-btn" onclick="handleSignOut()" class="hidden text-xs font-semibold text-slate-400 hover:text-red-500 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition-all duration-200">
-                        Sign Out
-                    </button>
-
-                    <!-- System Status Badge -->
-                    <div class="hidden sm:flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
-                        <span class="w-2 h-2 bg-emerald-500 rounded-full status-pulse"></span>
-                        System Online
-                    </div>
+                <!-- System Status Badge -->
+                <div class="hidden sm:flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full status-pulse"></span>
+                    System Online
+                </div>
                 </div>
             </div>
         </div>
@@ -986,126 +975,7 @@
     <!-- ═══════════════════════════════════════════════════════
          LOGIN / SIGNUP SCREEN OVERLAY
     ═══════════════════════════════════════════════════════ -->
-    <div id="auth-overlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md transition-opacity duration-500 hidden">
-            <!-- Credentials Input Container -->
-            <div id="auth-credentials-container">
-                <!-- Header -->
-                <div class="text-center mb-6">
-                    <div class="logo-glow inline-block mb-3">
-                        <svg class="w-12 h-12 text-emerald-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 007.92 12.446A9 9 0 1112 2.992z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l-1.5 1.5M14 6v2M19 10h-2"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12c0 0 1.5 1 3 1s3-1 3-1"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v4"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 20h4"/>
-                        </svg>
-                    </div>
-                    <h2 class="text-2xl font-black text-emerald-950 tracking-tight">AgriShield AI</h2>
-                    <p class="text-xs text-slate-500 mt-1">Sign in to access advanced crop intelligence</p>
-                </div>
 
-                <!-- Tab Switcher -->
-                <div class="flex gap-2 p-1 bg-slate-100/80 rounded-xl border border-slate-200/50 mb-6">
-                    <button id="auth-tab-login" type="button" onclick="switchAuthTab('login')" class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-emerald-800 shadow-sm border border-slate-200">
-                        Sign In
-                    </button>
-                    <button id="auth-tab-signup" type="button" onclick="switchAuthTab('signup')" class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-emerald-700">
-                        Register
-                    </button>
-                </div>
-
-                <!-- Form -->
-                <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
-                    <!-- Username (always visible) -->
-                    <div>
-                        <label id="username-label" for="auth-username" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Username or Email</label>
-                        <input type="text" id="auth-username" required class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" placeholder="farmer_joe" />
-                    </div>
-
-                    <!-- Email (visible only during signup) -->
-                    <div id="email-group" class="hidden">
-                        <label for="auth-email" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Email Address</label>
-                        <input type="email" id="auth-email" class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" placeholder="joe@farm.com" />
-                    </div>
-
-                    <!-- Password -->
-                    <div>
-                        <label for="auth-password" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Password</label>
-                        <div class="relative">
-                            <input type="password" id="auth-password" required class="w-full px-4 py-2.5 pr-10 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" placeholder="••••••••" />
-                            <button type="button" id="toggle-password-btn" onclick="togglePasswordVisibility('auth-password', 'eye-icon')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-emerald-700 transition-colors" title="Toggle password visibility">
-                                <!-- Eye icon -->
-                                <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Error Box -->
-                    <div id="auth-error" class="hidden text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3"></div>
-
-                    <!-- Submit Button -->
-                    <button type="submit" id="auth-btn" class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
-                        <span id="auth-btn-text">Sign In</span>
-                        <div id="auth-spinner" class="spinner hidden"></div>
-                    </button>
-                </form>
-            </div>
-
-            <!-- 2-Factor Authentication (2FA) Container -->
-            <div id="auth-2fa-container" class="hidden">
-                <!-- Header -->
-                <div class="text-center mb-6">
-                    <div class="logo-glow inline-block mb-3">
-                        <svg class="w-12 h-12 text-emerald-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                    </div>
-                    <h2 class="text-2xl font-black text-emerald-950 tracking-tight">Two-Factor Security</h2>
-                    <p class="text-xs text-slate-500 mt-1">We sent a 6-digit code to <strong id="auth-2fa-email" class="text-emerald-800 font-bold">...</strong></p>
-                </div>
-
-                <form id="auth-2fa-form" onsubmit="handle2FAVerification(event)" class="space-y-6">
-                    <!-- 6 Digit Input Blocks -->
-                    <div class="flex justify-between gap-2 max-w-xs mx-auto" id="otp-inputs-container">
-                        <input type="text" maxlength="1" class="otp-digit w-12 h-12 text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" required />
-                        <input type="text" maxlength="1" class="otp-digit w-12 h-12 text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" required />
-                        <input type="text" maxlength="1" class="otp-digit w-12 h-12 text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" required />
-                        <input type="text" maxlength="1" class="otp-digit w-12 h-12 text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" required />
-                        <input type="text" maxlength="1" class="otp-digit w-12 h-12 text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" required />
-                        <input type="text" maxlength="1" class="otp-digit w-12 h-12 text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200" required />
-                    </div>
-
-                    <!-- Countdown Timer & Actions -->
-                    <div class="text-center space-y-2">
-                        <p class="text-[11px] text-slate-500 font-medium">
-                            Code expires in: <span id="auth-2fa-timer" class="font-bold text-emerald-700">10:00</span>
-                        </p>
-                        <p class="text-[11px]">
-                            <span class="text-slate-400">Didn't receive code? </span>
-                            <button type="button" id="auth-2fa-resend-btn" onclick="resend2FACode()" class="text-emerald-700 hover:text-emerald-800 font-bold transition-colors">Resend Code</button>
-                        </p>
-                    </div>
-
-                    <!-- Error Alert -->
-                    <div id="auth-2fa-error" class="hidden text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3"></div>
-
-                    <!-- Buttons: Verify and Back to Login -->
-                    <div class="space-y-2.5">
-                        <button type="submit" id="auth-2fa-verify-btn" class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
-                            <span>Verify Code</span>
-                            <div id="auth-2fa-spinner" class="spinner hidden"></div>
-                        </button>
-                        <button type="button" onclick="cancel2FA()" class="w-full text-[11px] text-slate-500 hover:text-slate-700 font-bold transition-colors py-1">
-                            Back to Sign In
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='js/main.js') }}?v=1.1"></script>
