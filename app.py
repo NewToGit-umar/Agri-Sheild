@@ -41,6 +41,7 @@ from flask import (
     render_template,
     request,
     jsonify,
+    session
 )
 from PIL import Image
 
